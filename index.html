@@ -723,6 +723,92 @@
     .switch input:checked + .slider { background: var(--accent); }
     .switch input:checked + .slider::before { transform: translateX(20px); }
 
+    /* Diaro Import Modal */
+    .import-dropzone {
+      border: 1.5px dashed var(--border);
+      background: var(--bg);
+      border-radius: 14px;
+      padding: 18px 14px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .import-dropzone:active {
+      border-color: var(--accent);
+      background: rgba(107, 144, 128, 0.08);
+    }
+    .import-dropzone small {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .import-summary {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .import-stats {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #B9D6C9;
+    }
+    .import-sample {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: #C4CCD6;
+    }
+    .import-sample-head {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+    .import-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .import-check input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+    .progress-wrap {
+      width: 100%;
+      height: 8px;
+      background: var(--bg);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.2s ease;
+    }
+    .progress-text {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 6px;
+    }
+
     /* Toast */
     #toast {
       position: fixed;
@@ -1032,6 +1118,14 @@
 
       <div class="setting-row">
         <div class="setting-label">
+          <strong>Diaro 일기 가져오기</strong>
+          <span>DiaroBackup.xml 일괄 암호화 이전</span>
+        </div>
+        <button class="btn-secondary" id="btnOpenDiaroImport">가져오기</button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">
           <strong>구글 드라이브 다시 불러오기</strong>
           <span>다른 기기에서 쓴 일기를 새로고침</span>
         </div>
@@ -1064,6 +1158,50 @@
       </div>
       <div id="masterModalErr" class="error-msg"></div>
       <button class="btn-primary" id="btnUnlockMaster">잠금 해제</button>
+    </div>
+  </div>
+
+  <!-- ==================== 7. DIARO IMPORT MODAL ==================== -->
+  <div id="diaroImportModal" class="modal-backdrop hidden">
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h3>📥 Diaro 일기 가져오기</h3>
+        <button class="icon-btn" id="btnCloseDiaroModal">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <p class="setup-desc">
+        압축을 푼 <strong>DiaroBackup.xml</strong> 파일을 선택하면 브라우저 안에서만 AES-256으로 암호화해 구글 드라이브에 월별로 저장합니다.
+      </p>
+
+      <input type="file" id="inDiaroFile" accept=".xml,text/xml,application/xml" class="hidden" />
+      <div class="import-dropzone" id="btnPickDiaroFile">
+        <strong id="diaroFileLabel">📂 DiaroBackup.xml 파일 선택하기</strong>
+        <small>파일은 외부로 전송되지 않고 이 기기 안에서 바로 암호화됩니다</small>
+      </div>
+
+      <div id="diaroPreviewBox" class="import-summary hidden">
+        <div class="import-stats" id="diaroStats"></div>
+        <div id="diaroSampleList" style="display:flex; flex-direction:column; gap:6px;"></div>
+        <label class="import-check">
+          <input type="checkbox" id="chkDiaroIncludeMeta" checked />
+          <span>제목 · 폴더 · 태그가 있으면 본문 맨 위에 포함</span>
+        </label>
+        <label class="import-check">
+          <input type="checkbox" id="chkDiaroSkipDup" checked />
+          <span>이미 같은 내용이 있는 날짜는 중복 추가 안 함</span>
+        </label>
+      </div>
+
+      <div id="diaroProgressBox" class="hidden">
+        <div class="progress-wrap">
+          <div class="progress-bar" id="diaroProgressBar"></div>
+        </div>
+        <div class="progress-text" id="diaroProgressText">준비 중...</div>
+      </div>
+
+      <div id="diaroImportMsg" class="error-msg"></div>
+      <button class="btn-primary" id="btnStartDiaroImport" disabled>구글 드라이브에 암호화 저장 시작</button>
     </div>
   </div>
 
@@ -1258,7 +1396,10 @@
       hiddenAt: 0,
       bioBusy: false,
       lastBioAttempt: 0,
-      tempSetup: null
+      tempSetup: null,
+      suspendAutoLock: false,
+      isImporting: false,
+      diaroParsed: null
     };
 
     function loadCfg() {
@@ -1580,6 +1721,7 @@
         const kekMaster = await CryptoEngine.deriveKey(pwd, b64ToU8(vault.salt), 200000);
         const rawDek = await CryptoEngine.decryptBytes(kekMaster, vault.wrappedDek);
         $('masterModal').classList.add('hidden');
+      $('diaroImportModal').classList.add('hidden');
         await onUnlocked(rawDek);
       } catch {
         $('masterModalErr').textContent = '마스터 비밀번호가 올바르지 않습니다.';
@@ -2105,10 +2247,416 @@
     });
 
     /* ================================================================
+       11B. DIARO XML IMPORTER (100% Local Parse + AES-256 Monthly Sync)
+       ================================================================ */
+    function mapDiaroWeatherIcon(iconStr, descStr) {
+      const s = ((iconStr || '') + ' ' + (descStr || '')).toLowerCase();
+      if (!s.trim()) return '';
+      if (s.includes('thunder') || s.includes('storm') || s.includes('11d') || s.includes('11n')) return '⛈️';
+      if (s.includes('snow') || s.includes('sleet') || s.includes('13d') || s.includes('13n')) return '❄️';
+      if (s.includes('rain') || s.includes('drizzle') || s.includes('shower') || s.includes('09') || s.includes('10')) return '🌧️';
+      if (s.includes('fog') || s.includes('mist') || s.includes('haze') || s.includes('50')) return '🌫️';
+      if (s.includes('partly') || s.includes('02d') || s.includes('02n') || s.includes('03')) return '⛅';
+      if (s.includes('cloud') || s.includes('overcast') || s.includes('04')) return '☁️';
+      if (s.includes('clear-night') || s.includes('01n')) return '🌙';
+      if (s.includes('clear') || s.includes('sun') || s.includes('01d')) return '☀️';
+      if (s.includes('wind')) return '💨';
+      return '☁️';
+    }
+
+    function diaroRowToObj(rEl) {
+      const obj = {};
+      for (const child of rEl.children) {
+        obj[child.tagName.toLowerCase()] = child.textContent || '';
+      }
+      return obj;
+    }
+
+    function cleanDiaroText(raw) {
+      if (!raw) return '';
+      let t = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      // Only convert HTML line breaks if Diaro HTML block tags appear
+      if (/<(br|p|div)\b[^>]*>/i.test(t)) {
+        t = t
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/(p|div)>/gi, '\n')
+          .replace(/<(p|div)\b[^>]*>/gi, '');
+      }
+      return t.replace(/\n{4,}/g, '\n\n\n').trim();
+    }
+
+    function parseDiaroTimestamp(rawDate, tzOffset) {
+      let ms = Number(rawDate);
+      if (!Number.isFinite(ms) || ms <= 0) {
+        const parsed = Date.parse(rawDate);
+        if (!Number.isFinite(parsed)) return null;
+        ms = parsed;
+      } else if (ms < 1e12) {
+        ms = ms * 1000;
+      }
+
+      // Apply entry's recorded tz_offset if present (e.g., "+09:00" or "+0900")
+      const tz = (tzOffset || '').trim();
+      const m = /^([+-])(\d{2}):?(\d{2})$/.exec(tz);
+      if (m) {
+        const sign = m[1] === '-' ? -1 : 1;
+        const offsetMin = sign * (Number(m[2]) * 60 + Number(m[3]));
+        const shifted = new Date(ms + offsetMin * 60000);
+        return {
+          ms,
+          dateStr: formatDateStr(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, shifted.getUTCDate()),
+          timeStr: `${String(shifted.getUTCHours()).padStart(2, '0')}:${String(shifted.getUTCMinutes()).padStart(2, '0')}`
+        };
+      }
+
+      const d = new Date(ms);
+      return {
+        ms,
+        dateStr: formatDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate()),
+        timeStr: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+      };
+    }
+
+    function parseDiaroXml(xmlText) {
+      // Strip illegal XML 1.0 control chars that occasionally appear in mobile DB dumps
+      const sanitized = xmlText.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+      const doc = new DOMParser().parseFromString(sanitized, 'text/xml');
+      if (doc.querySelector('parsererror')) {
+        throw new Error('XML 형식을 읽을 수 없습니다. 암호화되지 않은 DiaroBackup.xml 파일인지 확인해 주세요.');
+      }
+
+      const tables = {};
+      doc.querySelectorAll('table').forEach((tbl) => {
+        const name = (tbl.getAttribute('name') || '').toLowerCase();
+        tables[name] = Array.from(tbl.querySelectorAll('r')).map(diaroRowToObj);
+      });
+
+      const foldersMap = {};
+      (tables['diaro_folders'] || []).forEach((r) => {
+        if (r.uid && r.title) foldersMap[r.uid] = r.title.trim();
+      });
+
+      const tagsMap = {};
+      (tables['diaro_tags'] || []).forEach((r) => {
+        if (r.uid && r.title) tagsMap[r.uid] = r.title.trim();
+      });
+
+      const locationsMap = {};
+      (tables['diaro_locations'] || []).forEach((r) => {
+        if (!r.uid) return;
+        const label = (r.title || '').trim() || (r.address || '').trim();
+        if (label) locationsMap[r.uid] = label;
+      });
+
+      const moodsMap = {};
+      (tables['diaro_moods'] || []).forEach((r) => {
+        if (r.uid && r.title) moodsMap[r.uid] = r.title.trim();
+      });
+
+      const rawEntries = tables['diaro_entries'] || [];
+      if (rawEntries.length === 0) {
+        throw new Error('파일 안에서 Diaro 일기(diaro_entries)를 찾지 못했습니다.');
+      }
+
+      const entries = [];
+      for (const r of rawEntries) {
+        const dt = parseDiaroTimestamp(r.date, r.tz_offset);
+        if (!dt) continue;
+
+        const title = (r.title || '').trim();
+        const body = cleanDiaroText(r.text || '');
+        if (!title && !body) continue;
+
+        const folder = r.folder_uid ? (foldersMap[r.folder_uid] || '') : '';
+        const mood = r.mood_uid ? (moodsMap[r.mood_uid] || '') : '';
+        const location = r.location_uid ? (locationsMap[r.location_uid] || '') : '';
+
+        const tagNames = (r.tags || '')
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean)
+          .map((id) => tagsMap[id])
+          .filter(Boolean);
+
+        // Weather formatting
+        let weather = '';
+        const tempRaw = (r.weather_temperature || r.weather_temp || '').trim();
+        const wIcon = mapDiaroWeatherIcon(r.weather_icon, r.weather_description);
+        if (tempRaw !== '' && Number.isFinite(Number(tempRaw))) {
+          const tempRounded = Math.round(Number(tempRaw));
+          weather = `${wIcon || '☁️'} ${tempRounded}°C`;
+        } else if (wIcon) {
+          weather = wIcon;
+        }
+
+        entries.push({
+          ms: dt.ms,
+          dateStr: dt.dateStr,
+          timeStr: dt.timeStr,
+          title,
+          body,
+          folder,
+          mood,
+          tags: tagNames,
+          location,
+          weather
+        });
+      }
+
+      if (entries.length === 0) {
+        throw new Error('가져올 수 있는 본문 일기가 없습니다.');
+      }
+
+      entries.sort((a, b) => a.ms - b.ms);
+      return entries;
+    }
+
+    function buildDiaroDayGroups(entries, includeMeta) {
+      const byDate = {};
+      for (const e of entries) {
+        if (!byDate[e.dateStr]) byDate[e.dateStr] = [];
+        byDate[e.dateStr].push(e);
+      }
+
+      const dayMap = {};
+      for (const [dateStr, list] of Object.entries(byDate)) {
+        const multi = list.length > 1;
+        const blocks = list.map((e) => {
+          const parts = [];
+          if (multi && e.timeStr) {
+            parts.push(`[${e.timeStr}]`);
+          }
+          if (includeMeta) {
+            if (e.title) parts.push(`■ ${e.title}`);
+            const metaBadges = [];
+            if (e.folder) metaBadges.push(`[${e.folder}]`);
+            if (e.mood) metaBadges.push(`(${e.mood})`);
+            if (e.tags.length > 0) metaBadges.push(e.tags.map((t) => `#${t}`).join(' '));
+            if (metaBadges.length > 0) parts.push(metaBadges.join(' '));
+          } else if (!e.body && e.title) {
+            parts.push(e.title);
+          }
+          if (e.body) parts.push(e.body);
+          return parts.join('\n').trim();
+        }).filter(Boolean);
+
+        const firstWeather = (list.find((e) => e.weather) || {}).weather || '';
+        const firstLocation = (list.find((e) => e.location) || {}).location || '';
+        const latestMs = list[list.length - 1].ms;
+
+        dayMap[dateStr] = {
+          text: blocks.join('\n\n──────────\n\n'),
+          weather: firstWeather,
+          location: firstLocation,
+          updatedAt: latestMs
+        };
+      }
+      return dayMap;
+    }
+
+    function renderDiaroPreview() {
+      const entries = state.diaroParsed;
+      if (!entries || entries.length === 0) return;
+
+      const includeMeta = $('chkDiaroIncludeMeta').checked;
+      const dayMap = buildDiaroDayGroups(entries, includeMeta);
+      const dates = Object.keys(dayMap).sort();
+      const months = new Set(dates.map((d) => d.slice(0, 7)));
+
+      $('diaroStats').textContent =
+        `총 ${entries.length}개 일기 (${dates.length}일 · ${months.size}개월 파일) / ${dates[0]} ~ ${dates[dates.length - 1]}`;
+
+      const samples = [];
+      const newestDate = dates[dates.length - 1];
+      const oldestDate = dates[0];
+      samples.push({ label: '가장 최근 일기', date: newestDate, item: dayMap[newestDate] });
+      if (oldestDate !== newestDate) {
+        samples.push({ label: '가장 오래된 일기', date: oldestDate, item: dayMap[oldestDate] });
+      }
+
+      const listEl = $('diaroSampleList');
+      listEl.innerHTML = '';
+      for (const s of samples) {
+        const div = document.createElement('div');
+        div.className = 'import-sample';
+        const meta = [s.item.weather, s.item.location ? `📍 ${s.item.location}` : ''].filter(Boolean).join(' · ');
+        const head = document.createElement('div');
+        head.className = 'import-sample-head';
+        head.textContent = `${s.label}: ${s.date}` + (meta ? ` (${meta})` : '');
+        const body = document.createElement('div');
+        const snippet = s.item.text.replace(/\s+/g, ' ').slice(0, 80);
+        body.textContent = snippet + (s.item.text.length > 80 ? '...' : '');
+        div.appendChild(head);
+        div.appendChild(body);
+        listEl.appendChild(div);
+      }
+
+      $('diaroPreviewBox').classList.remove('hidden');
+      $('btnStartDiaroImport').disabled = false;
+    }
+
+    $('btnOpenDiaroImport').addEventListener('click', () => {
+      $('settingsModal').classList.add('hidden');
+      state.diaroParsed = null;
+      $('inDiaroFile').value = '';
+      $('diaroFileLabel').textContent = '📂 DiaroBackup.xml 파일 선택하기';
+      $('diaroPreviewBox').classList.add('hidden');
+      $('diaroProgressBox').classList.add('hidden');
+      $('diaroImportMsg').textContent = '';
+      $('diaroImportMsg').style.color = 'var(--danger)';
+      $('btnStartDiaroImport').disabled = true;
+      $('btnStartDiaroImport').textContent = '구글 드라이브에 암호화 저장 시작';
+      $('diaroImportModal').classList.remove('hidden');
+    });
+
+    $('btnCloseDiaroModal').addEventListener('click', () => {
+      if (state.isImporting) return;
+      $('diaroImportModal').classList.add('hidden');
+    });
+
+    $('btnPickDiaroFile').addEventListener('click', () => {
+      if (state.isImporting) return;
+      // Temporarily suspend auto-lock while OS file picker is open on mobile
+      state.suspendAutoLock = true;
+      const restoreLockGuard = () => {
+        setTimeout(() => { state.suspendAutoLock = false; }, 1200);
+        window.removeEventListener('focus', restoreLockGuard);
+      };
+      window.addEventListener('focus', restoreLockGuard);
+      $('inDiaroFile').click();
+    });
+
+    $('inDiaroFile').addEventListener('change', async (e) => {
+      setTimeout(() => { state.suspendAutoLock = false; }, 500);
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      $('diaroImportMsg').textContent = '';
+      $('diaroImportMsg').style.color = 'var(--danger)';
+      $('diaroFileLabel').textContent = `📄 ${file.name} 분석 중...`;
+
+      try {
+        const xmlText = await file.text();
+        const entries = parseDiaroXml(xmlText);
+        state.diaroParsed = entries;
+        $('diaroFileLabel').textContent = `✅ ${file.name} 선택됨`;
+        renderDiaroPreview();
+      } catch (err) {
+        state.diaroParsed = null;
+        $('diaroFileLabel').textContent = '📂 DiaroBackup.xml 파일 선택하기';
+        $('diaroPreviewBox').classList.add('hidden');
+        $('btnStartDiaroImport').disabled = true;
+        $('diaroImportMsg').textContent = err.message;
+      }
+    });
+
+    $('chkDiaroIncludeMeta').addEventListener('change', renderDiaroPreview);
+
+    $('btnStartDiaroImport').addEventListener('click', async () => {
+      if (!state.dek || !state.diaroParsed || state.isImporting) return;
+
+      const includeMeta = $('chkDiaroIncludeMeta').checked;
+      const skipDup = $('chkDiaroSkipDup').checked;
+      const dayMap = buildDiaroDayGroups(state.diaroParsed, includeMeta);
+
+      // Group days by YYYY-MM (newest month first)
+      const byMonth = {};
+      for (const [dateStr, entry] of Object.entries(dayMap)) {
+        const ym = dateStr.slice(0, 7);
+        if (!byMonth[ym]) byMonth[ym] = {};
+        byMonth[ym][dateStr] = entry;
+      }
+      const months = Object.keys(byMonth).sort().reverse();
+
+      state.isImporting = true;
+      $('btnStartDiaroImport').disabled = true;
+      $('btnStartDiaroImport').textContent = '암호화 저장 진행 중... (창을 닫지 마세요)';
+      $('diaroProgressBox').classList.remove('hidden');
+      $('diaroImportMsg').textContent = '';
+      $('diaroImportMsg').style.color = 'var(--danger)';
+
+      let savedMonths = 0;
+      let addedDays = 0;
+      let skippedDays = 0;
+      const failedMonths = [];
+
+      for (let i = 0; i < months.length; i++) {
+        const ym = months[i];
+        const pct = Math.round(((i) / months.length) * 100);
+        $('diaroProgressBar').style.width = `${pct}%`;
+        $('diaroProgressText').textContent = `${i + 1} / ${months.length}개월 처리 중... (${ym})`;
+
+        let ok = false;
+        for (let attempt = 0; attempt < 2 && !ok; attempt++) {
+          try {
+            const existingMonth = await loadMonthData(ym, true);
+            let monthChanged = false;
+
+            for (const [dateStr, imp] of Object.entries(byMonth[ym])) {
+              const cur = existingMonth[dateStr];
+              if (!cur || !cur.text) {
+                existingMonth[dateStr] = imp;
+                monthChanged = true;
+                addedDays++;
+              } else if (skipDup && cur.text.includes(imp.text.trim())) {
+                skippedDays++;
+              } else {
+                existingMonth[dateStr] = {
+                  text: `${cur.text.trim()}\n\n──────────\n\n${imp.text.trim()}`,
+                  weather: cur.weather || imp.weather || '',
+                  location: cur.location || imp.location || '',
+                  updatedAt: Math.max(cur.updatedAt || 0, imp.updatedAt || 0)
+                };
+                monthChanged = true;
+                addedDays++;
+              }
+            }
+
+            if (monthChanged) {
+              await saveMonthData(ym);
+              // Gentle delay to avoid GAS burst rate limits on large histories
+              await new Promise((r) => setTimeout(r, 250));
+            }
+            savedMonths++;
+            ok = true;
+          } catch (err) {
+            if (attempt === 0) {
+              await new Promise((r) => setTimeout(r, 1200));
+            } else {
+              failedMonths.push(ym);
+            }
+          }
+        }
+      }
+
+      $('diaroProgressBar').style.width = '100%';
+      state.isImporting = false;
+
+      if (failedMonths.length === 0) {
+        $('diaroProgressText').textContent = `완료! ${addedDays}일 저장됨` + (skippedDays ? ` (${skippedDays}일 중복 건너뜀)` : '');
+        $('diaroImportMsg').style.color = '#9AC0AF';
+        $('diaroImportMsg').textContent = `총 ${savedMonths}개월 파일이 구글 드라이브에 안전하게 암호화 저장되었습니다.`;
+        $('btnStartDiaroImport').textContent = '가져오기 완료';
+        showToast('Diaro 일기 이전이 완료되었습니다!', 3500);
+        // Refresh calendar view if visible
+        if (!$('calendarScreen').classList.contains('hidden')) {
+          await renderCalendar(false);
+        }
+      } else {
+        $('diaroProgressText').textContent = `${savedMonths}/${months.length}개월 완료 (일부 실패)`;
+        $('diaroImportMsg').textContent =
+          `실패한 월(${failedMonths.join(', ')})이 있습니다. 다시 버튼을 누르면 이미 옮겨진 날짜는 건너뛰고 실패한 부분만 이어서 저장합니다.`;
+        $('btnStartDiaroImport').disabled = false;
+        $('btnStartDiaroImport').textContent = '실패한 월 이어서 다시 저장';
+      }
+    });
+
+    /* ================================================================
        12. AUTO-LOCK & PRIVACY BLUR ON BACKGROUND SWITCH
        ================================================================ */
     document.addEventListener('visibilitychange', async () => {
       if (!state.cfg) return;
+      if (state.suspendAutoLock || state.isImporting) return;
 
       if (document.visibilityState === 'hidden') {
         state.hiddenAt = Date.now();

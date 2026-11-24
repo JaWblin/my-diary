@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#121417" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>비밀 일기</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <style>
+    :root {
+      --bg: #121417;
+      --surface: #1B1E23;
+      --surface-2: #22262D;
+      --border: #2C313A;
+      --text: #E2E5E9;
+      --text-muted: #8B939E;
+      --accent: #6B9080;
+      --accent-hover: #7CA492;
+      --accent-soft: rgba(107, 144, 128, 0.16);
+      --danger: #D97777;
+      --warn: #D4A359;
+      --sun: #C97A7A;
+      --sat: #7A9EC9;
+      --line-height: 36px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      overflow: hidden;
+    }
+
+    textarea, input {
+      user-select: text;
+      font-family: inherit;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Privacy shield when switching apps */
+    #privacyShield {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Common Layout */
+    .screen {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      max-width: 540px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      padding: env(safe-area-inset-top, 12px) 16px env(safe-area-inset-bottom, 14px) 16px;
+    }
+
+    /* Buttons & Icons */
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .icon-btn:active {
+      background: var(--surface-2);
+      border-color: var(--border);
+    }
+    .icon-btn svg {
+      width: 21px;
+      height: 21px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0E1310;
+      font-weight: 700;
+      border: none;
+      border-radius: 14px;
+      padding: 13px 20px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-primary:active {
+      background: var(--accent-hover);
+      transform: scale(0.98);
+    }
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn-secondary:active {
+      background: #2A2F38;
+    }
+
+    .btn-text {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .btn-text:active { color: var(--text); }
+
+    /* ================= SETUP SCREEN ================= */
+    #setupScreen {
+      justify-content: center;
+      overflow-y: auto;
+    }
+    .setup-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .setup-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .setup-desc {
+      margin: 0;
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .field input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: var(--accent);
+    }
+    .hint-box {
+      background: var(--accent-soft);
+      border: 1px solid rgba(107, 144, 128, 0.35);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: #C7DCD2;
+    }
+    .error-msg {
+      color: var(--danger);
+      font-size: 13px;
+      min-height: 18px;
+      text-align: center;
+    }
+
+    /* ================= LOCK SCREEN ================= */
+    #lockScreen {
+      justify-content: space-between;
+      align-items: center;
+      padding-top: max(env(safe-area-inset-top, 20px), 34px);
+      padding-bottom: max(env(safe-area-inset-bottom, 20px), 24px);
+    }
+    .lock-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .lock-badge {
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+    .lock-badge svg {
+      width: 26px;
+      height: 26px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+    .lock-title {
+      font-size: 19px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .lock-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .pin-dots {
+      display: flex;
+      gap: 14px;
+      margin: 18px 0 8px 0;
+    }
+    .pin-dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 1.5px solid #4A525E;
+      background: transparent;
+      transition: all 0.12s;
+    }
+    .pin-dot.filled {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: scale(1.1);
+    }
+    .pin-dot.error {
+      background: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .keypad {
+      width: 100%;
+      max-width: 300px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 6px 0;
+    }
+    .key-btn {
+      height: 60px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.1s, transform 0.08s;
+    }
+    .key-btn:active {
+      background: var(--surface-2);
+      transform: scale(0.95);
+    }
+    .key-btn.action {
+      font-size: 13px;
+      color: var(--text-muted);
+      background: transparent;
+      border-color: transparent;
+    }
+    .key-btn.bio {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: rgba(107, 144, 128, 0.35);
+    }
+    .key-btn svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+    }
+
+    /* ================= EDITOR SCREEN ================= */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      flex-shrink: 0;
+      gap: 6px;
+    }
+    .topbar-left, .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .date-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+    }
+    .status-pill {
+      font-size: 11.5px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .status-pill.draft {
+      color: var(--warn);
+      border-color: rgba(212, 163, 89, 0.35);
+      background: rgba(212, 163, 89, 0.1);
+    }
+    .status-pill.saved {
+      color: #9AC0AF;
+      border-color: rgba(107, 144, 128, 0.35);
+      background: var(--accent-soft);
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0 12px 0;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #1E2228;
+      border: 1px solid #2B3038;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: #C7CED6;
+      cursor: pointer;
+    }
+    .meta-chip:active {
+      background: #272C34;
+    }
+    .meta-chip.empty {
+      color: var(--text-muted);
+      border-style: dashed;
+    }
+    .meta-refresh {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid #2B3038;
+      background: #1E2228;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .meta-refresh:active { color: var(--text); }
+    .meta-refresh svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    /* Ruled Paper Writing Card */
+    .paper-card {
+      flex: 1;
+      min-height: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 8px 24px rgba(0,0,0,0.28);
+    }
+
+    #diaryInput {
+      flex: 1;
+      width: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      background-color: transparent;
+      color: var(--text);
+      font-size: 16px;
+      line-height: var(--line-height);
+      padding: 12px 18px 28px 18px;
+      /* Infinite scrolling subtle ruled lines synced to exact line-height */
+      background-attachment: local;
+      background-origin: padding-box;
+      background-position: 0 12px;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent calc(var(--line-height) - 1px),
+        rgba(255, 255, 255, 0.065) calc(var(--line-height) - 1px),
+        rgba(255, 255, 255, 0.065) var(--line-height)
+      );
+      caret-color: var(--accent);
+      overflow-y: auto;
+    }
+    #diaryInput::placeholder {
+      color: #555D69;
+    }
+
+    .editor-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(18, 20, 23, 0.45);
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      flex-shrink: 0;
+    }
+    .char-count {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      padding-left: 4px;
+    }
+    .save-btn {
+      background: var(--accent);
+      color: #0E1310;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      padding: 9px 22px;
+      font-size: 14.5px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .save-btn:active {
+      background: var(--accent-hover);
+      transform: scale(0.97);
+    }
+    .save-btn:disabled {
+      opacity: 0.5;
+    }
+
+    /* ================= CALENDAR SCREEN ================= */
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      flex-shrink: 0;
+    }
+    .cal-month-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cal-month-label {
+      font-size: 18px;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+    .cal-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      margin-top: 10px;
+      margin-bottom: 6px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .cal-weekdays span:first-child { color: var(--sun); }
+    .cal-weekdays span:last-child { color: var(--sat); }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      row-gap: 6px;
+      column-gap: 2px;
+    }
+    .cal-cell {
+      height: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.12s;
+    }
+    .cal-cell:active {
+      background: var(--surface-2);
+    }
+    .cal-cell.empty {
+      cursor: default;
+      pointer-events: none;
+    }
+    .cal-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14.5px;
+      font-weight: 500;
+    }
+    .cal-cell.sun .cal-num { color: var(--sun); }
+    .cal-cell.sat .cal-num { color: var(--sat); }
+    .cal-cell.today .cal-num {
+      border: 1.5px solid var(--accent);
+      font-weight: 700;
+    }
+    .cal-cell.selected .cal-num {
+      background: var(--accent);
+      color: #0E1310 !important;
+      font-weight: 700;
+    }
+    .cal-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      margin-top: 2px;
+      background: transparent;
+    }
+    .cal-cell.has-entry .cal-dot {
+      background: var(--accent);
+    }
+    .cal-cell.has-draft .cal-dot {
+      background: var(--warn);
+    }
+
+    .cal-summary-card {
+      margin-top: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .cal-summary-card:active {
+      border-color: var(--accent);
+    }
+    .cal-summary-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .cal-summary-date {
+      font-size: 15.5px;
+      font-weight: 700;
+    }
+    .cal-summary-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .cal-summary-preview {
+      font-size: 13.5px;
+      color: #B4BCC6;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: pre-wrap;
+    }
+
+    .cal-bottom-actions {
+      margin-top: auto;
+      padding-top: 14px;
+      display: flex;
+      gap: 10px;
+    }
+    .cal-bottom-actions .btn-primary {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* ================= MODAL ================= */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-sheet {
+      width: 100%;
+      max-width: 500px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 85dvh;
+      overflow-y: auto;
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-head h3 {
+      margin: 0;
+      font-size: 17px;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      gap: 12px;
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .setting-label strong { font-size: 14.5px; font-weight: 600; }
+    .setting-label span { font-size: 12px; color: var(--text-muted); }
+
+    select.dark-select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13.5px;
+    }
+
+    /* Toggle switch */
+    .switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #333944;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: #E2E5E9;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .switch input:checked + .slider { background: var(--accent); }
+    .switch input:checked + .slider::before { transform: translateX(20px); }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      top: max(env(safe-area-inset-top, 16px), 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: #252A32;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      z-index: 1000;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      transition: transform 0.25s ease;
+      white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- Privacy Shield Overlay -->
+  <div id="privacyShield" class="hidden">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6B9080" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+    <div style="font-size:14px;">잠금 보호 중</div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- ==================== 1. SETUP / RESTORE SCREEN ==================== -->
+  <div id="setupScreen" class="screen hidden">
+    <div class="setup-card">
+      <h1 class="setup-title">🔒 비밀 일기 초기 설정</h1>
+      <p class="setup-desc">1단계에서 배포한 Google Apps Script 주소와 비밀 통신키를 입력해 내 구글 드라이브와 연결합니다.</p>
+
+      <!-- Step 1: Server Connect -->
+      <div id="setupStep1">
+        <div class="field">
+          <label>GAS 웹 앱 URL</label>
+          <input type="url" id="inGasUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" />
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>비밀 통신키 (API_SECRET)</label>
+          <input type="password" id="inApiSecret" placeholder="GAS 코드에 입력한 비밀키" autocomplete="off" />
+        </div>
+        <div id="setupErr1" class="error-msg"></div>
+        <button class="btn-primary" id="btnConnectServer" style="width:100%;">서버 연결 확인</button>
+      </div>
+
+      <!-- Step 2A: New Vault Creation -->
+      <div id="setupStep2New" class="hidden">
+        <div class="hint-box">
+          새로운 일기장을 생성합니다.<br/>
+          <strong>마스터 비밀번호</strong>는 새 핸드폰이나 PC에서 일기를 복원할 때 꼭 필요하므로 절대 잊지 않게 기억해 주세요.
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>마스터 비밀번호 (8자 이상 권장)</label>
+          <input type="password" id="inMasterNew" placeholder="기억하기 쉬운 안전한 비밀번호" />
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>마스터 비밀번호 확인</label>
+          <input type="password" id="inMasterConfirm" placeholder="한 번 더 입력" />
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>이 기기용 간편 PIN (숫자 6자리)</label>
+          <input type="password" id="inPinNew" inputmode="numeric" maxlength="6" placeholder="예: 123456" />
+        </div>
+        <div id="setupErr2New" class="error-msg"></div>
+        <button class="btn-primary" id="btnCreateVault" style="width:100%;">암호화 일기장 만들기</button>
+      </div>
+
+      <!-- Step 2B: Existing Vault Restore -->
+      <div id="setupStep2Restore" class="hidden">
+        <div class="hint-box">
+          구글 드라이브에서 <strong>기존 암호화 일기장</strong>을 찾았습니다!<br/>
+          마스터 비밀번호를 입력하면 모든 과거 일기를 이 기기에서 바로 열람·작성할 수 있습니다.
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>마스터 비밀번호</label>
+          <input type="password" id="inMasterRestore" placeholder="기존 마스터 비밀번호 입력" />
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>이 기기용 간편 PIN 설정 (숫자 6자리)</label>
+          <input type="password" id="inPinRestore" inputmode="numeric" maxlength="6" placeholder="숫자 6자리" />
+        </div>
+        <div id="setupErr2Restore" class="error-msg"></div>
+        <button class="btn-primary" id="btnRestoreVault" style="width:100%;">일기장 복원 및 시작</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. LOCK SCREEN ==================== -->
+  <div id="lockScreen" class="screen hidden">
+    <div class="lock-header">
+      <div class="lock-badge">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <h2 class="lock-title">비밀 일기</h2>
+      <p class="lock-sub" id="lockSubtitle">지문 또는 6자리 PIN으로 잠금을 해제하세요</p>
+
+      <div class="pin-dots" id="pinDots">
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+      </div>
+      <div id="lockError" class="error-msg"></div>
+    </div>
+
+    <div class="keypad" id="keypad">
+      <button class="key-btn" data-key="1">1</button>
+      <button class="key-btn" data-key="2">2</button>
+      <button class="key-btn" data-key="3">3</button>
+      <button class="key-btn" data-key="4">4</button>
+      <button class="key-btn" data-key="5">5</button>
+      <button class="key-btn" data-key="6">6</button>
+      <button class="key-btn" data-key="7">7</button>
+      <button class="key-btn" data-key="8">8</button>
+      <button class="key-btn" data-key="9">9</button>
+      <button class="key-btn bio" id="btnBioUnlock" title="지문 인증">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/>
+          <path d="M14 13.12c0 2.38 0 6.38-1 8.88"/>
+          <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/>
+          <path d="M2 12a10 10 0 0 1 18-6"/>
+          <path d="M2 16h.01"/>
+          <path d="M21.8 16c.2-2 .131-5.354 0-6"/>
+          <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/>
+          <path d="M8.65 22c.21-.66.45-1.32.57-2"/>
+          <path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>
+        </svg>
+      </button>
+      <button class="key-btn" data-key="0">0</button>
+      <button class="key-btn action" id="btnKeyBack" title="지우기">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+          <line x1="18" y1="9" x2="12" y2="15"></line>
+          <line x1="12" y1="9" x2="18" y2="15"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="display:flex; gap:12px;">
+      <button class="btn-text" id="btnMasterFallback">마스터 비밀번호로 열기</button>
+    </div>
+  </div>
+
+  <!-- ==================== 3. EDITOR SCREEN (DEFAULT AFTER UNLOCK) ==================== -->
+  <div id="editorScreen" class="screen hidden">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" id="btnGoCalendar" title="달력 보기">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </button>
+        <span class="date-title" id="editorDateTitle">11월 24일 (화)</span>
+      </div>
+      <div class="topbar-right">
+        <span class="status-pill" id="saveStatusPill">준비됨</span>
+        <button class="icon-btn" id="btnLockFromEditor" title="즉시 잠금">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="meta-row" id="metaRow">
+      <button class="meta-chip" id="chipWeather" title="날씨 수정">☁️ 날씨 확인 중...</button>
+      <button class="meta-chip" id="chipLocation" title="위치 수정">📍 위치 확인 중...</button>
+      <button class="meta-refresh" id="btnRefreshMeta" title="날씨/위치 다시 불러오기">
+        <svg viewBox="0 0 24 24">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="paper-card">
+      <textarea id="diaryInput" placeholder="오늘 하루는 어땠나요?&#10;편하게 기록해 보세요..."></textarea>
+      <div class="editor-footer">
+        <span class="char-count" id="charCount">0자</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn-text hidden" id="btnJumpToday" style="color:var(--accent); font-weight:600;">오늘로</button>
+          <button class="save-btn" id="btnSaveDiary">완료</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 4. CALENDAR SCREEN ==================== -->
+  <div id="calendarScreen" class="screen hidden">
+    <div class="cal-header">
+      <div class="cal-month-nav">
+        <span class="cal-month-label" id="calMonthLabel">2026년 11월</span>
+        <button class="icon-btn" id="btnPrevMonth" title="이전 달">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <button class="icon-btn" id="btnNextMonth" title="다음 달">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="btnOpenSettings" title="설정">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btnLockFromCal" title="즉시 잠금">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="cal-weekdays">
+      <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+
+    <div class="cal-summary-card" id="calSummaryCard">
+      <div class="cal-summary-top">
+        <span class="cal-summary-date" id="calSummaryDate">11월 24일 화요일</span>
+        <span class="status-pill" id="calSummaryStatus">기록 없음</span>
+      </div>
+      <div class="cal-summary-meta" id="calSummaryMeta"></div>
+      <div class="cal-summary-preview" id="calSummaryPreview">탭하여 이 날의 일기를 작성하거나 확인하세요.</div>
+    </div>
+
+    <div class="cal-bottom-actions">
+      <button class="btn-primary" id="btnWriteToday">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+        <span>오늘 일기 쓰기</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== 5. SETTINGS MODAL ==================== -->
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h3>⚙️ 설정</h3>
+        <button class="icon-btn" id="btnCloseSettings">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">
+          <strong>지문 / 생체인증 잠금 해제</strong>
+          <span id="bioStatusText">미등록</span>
+        </div>
+        <button class="btn-secondary" id="btnToggleBio">등록하기</button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">
+          <strong>날씨 · 위치 자동 기록</strong>
+          <span>새 일기 작성 시 자동으로 채웁니다</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="chkAutoMeta" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">
+          <strong>다른 앱 전환 시 자동 잠금</strong>
+          <span>보안 수준에 맞춰 선택하세요</span>
+        </div>
+        <select class="dark-select" id="selLockDelay">
+          <option value="0">즉시 잠금</option>
+          <option value="30">30초 후</option>
+          <option value="60">1분 후</option>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">
+          <strong>간편 PIN 변경</strong>
+          <span>이 기기의 6자리 PIN을 바꿉니다</span>
+        </div>
+        <button class="btn-secondary" id="btnChangePin">변경</button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">
+          <strong>구글 드라이브 다시 불러오기</strong>
+          <span>다른 기기에서 쓴 일기를 새로고침</span>
+        </div>
+        <button class="btn-secondary" id="btnForceSync">새로고침</button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">
+          <strong style="color:var(--danger);">이 기기 연결 해제</strong>
+          <span>구글 드라이브의 일기는 삭제되지 않습니다</span>
+        </div>
+        <button class="btn-secondary" id="btnResetDevice" style="color:var(--danger); border-color:rgba(217,119,119,0.4);">초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 6. MASTER PASSWORD MODAL ==================== -->
+  <div id="masterModal" class="modal-backdrop hidden">
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h3>🔑 마스터 비밀번호로 잠금 해제</h3>
+        <button class="icon-btn" id="btnCloseMasterModal">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <p class="setup-desc">구글 드라이브의 암호화 키를 직접 복호화합니다. 해제 후 PIN을 다시 설정할 수 있습니다.</p>
+      <div class="field">
+        <label>마스터 비밀번호</label>
+        <input type="password" id="inMasterModalPwd" placeholder="마스터 비밀번호 입력" />
+      </div>
+      <div id="masterModalErr" class="error-msg"></div>
+      <button class="btn-primary" id="btnUnlockMaster">잠금 해제</button>
+    </div>
+  </div>
+
+  <script>
+    /* ================================================================
+       1. UTILITIES (Date, Base64, IndexedDB for Bio Device Key)
+       ================================================================ */
+    const CFG_KEY = 'secret_diary_cfg_v1';
+    const DRAFT_PREFIX = 'secret_diary_draft_';
+    const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+    const $ = (id) => document.getElementById(id);
+
+    function showToast(msg, ms = 2200) {
+      const el = $('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove('show'), ms);
+    }
+
+    function getTodayStr() {
+      const d = new Date();
+      return formatDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    }
+
+    function formatDateStr(y, m, d) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    function parseDateStr(str) {
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function formatKoreanShort(dateStr) {
+      const dt = parseDateStr(dateStr);
+      return `${dt.getMonth() + 1}월 ${dt.getDate()}일 (${WEEKDAYS[dt.getDay()]})`;
+    }
+
+    function formatKoreanFull(dateStr) {
+      const dt = parseDateStr(dateStr);
+      return `${dt.getMonth() + 1}월 ${dt.getDate()}일 ${WEEKDAYS[dt.getDay()]}요일`;
+    }
+
+    function abToB64(buf) {
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return btoa(bin);
+    }
+
+    function b64ToU8(b64) {
+      const bin = atob(b64);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    // IndexedDB helper for storing non-extractable device AES key (used with WebAuthn)
+    const DeviceKeyDB = {
+      open() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open('SecretDiaryKeyDB', 1);
+          req.onupgradeneeded = () => req.result.createObjectStore('keys');
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      },
+      async setKey(name, key) {
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction('keys', 'readwrite');
+          tx.objectStore('keys').put(key, name);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      },
+      async getKey(name) {
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction('keys', 'readonly');
+          const req = tx.objectStore('keys').get(name);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+      },
+      async clear() {
+        const db = await this.open();
+        return new Promise((resolve) => {
+          const tx = db.transaction('keys', 'readwrite');
+          tx.objectStore('keys').clear();
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => resolve();
+        });
+      }
+    };
+
+    /* ================================================================
+       2. CRYPTO ENGINE (Web Crypto API: AES-256-GCM + PBKDF2)
+       ================================================================ */
+    const CryptoEngine = {
+      randomBytes(len) {
+        return crypto.getRandomValues(new Uint8Array(len));
+      },
+      async deriveKey(password, saltU8, iterations = 200000) {
+        const baseKey = await crypto.subtle.importKey(
+          'raw',
+          new TextEncoder().encode(password),
+          'PBKDF2',
+          false,
+          ['deriveKey']
+        );
+        return crypto.subtle.deriveKey(
+          { name: 'PBKDF2', salt: saltU8, iterations, hash: 'SHA-256' },
+          baseKey,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+      },
+      async importRawDek(rawBytes) {
+        return crypto.subtle.importKey(
+          'raw',
+          rawBytes,
+          { name: 'AES-GCM', length: 256 },
+          true,
+          ['encrypt', 'decrypt']
+        );
+      },
+      async generateRawDek() {
+        return this.randomBytes(32);
+      },
+      async encryptBytes(aesKey, plainBytes) {
+        const iv = this.randomBytes(12);
+        const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, plainBytes);
+        return { v: 1, iv: abToB64(iv), ct: abToB64(ct) };
+      },
+      async decryptBytes(aesKey, payload) {
+        const iv = b64ToU8(payload.iv);
+        const ct = b64ToU8(payload.ct);
+        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, aesKey, ct);
+        return new Uint8Array(pt);
+      },
+      async encryptString(aesKey, text) {
+        const enc = await this.encryptBytes(aesKey, new TextEncoder().encode(text));
+        return JSON.stringify(enc);
+      },
+      async decryptString(aesKey, jsonStr) {
+        const payload = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+        const pt = await this.decryptBytes(aesKey, payload);
+        return new TextDecoder().decode(pt);
+      }
+    };
+
+    /* ================================================================
+       3. GAS BACKEND API (CORS-safe text/plain JSON POST)
+       ================================================================ */
+    async function gasCall(action, extra = {}, customCfg = null) {
+      const cfg = customCfg || state.cfg;
+      const res = await fetch(cfg.gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow',
+        body: JSON.stringify({ token: cfg.apiSecret, action, ...extra })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || '서버 오류');
+      return data;
+    }
+
+    /* ================================================================
+       4. APP STATE
+       ================================================================ */
+    const state = {
+      cfg: null,
+      dek: null,          // CryptoKey in RAM only while unlocked
+      rawDek: null,       // Uint8Array in RAM only while unlocked (for PIN/Bio re-wrap)
+      monthCache: {},     // { '2026-11': { '2026-11-24': { text, weather, location, updatedAt } } }
+      activeDate: getTodayStr(),
+      calYear: new Date().getFullYear(),
+      calMonth: new Date().getMonth() + 1,
+      selectedCalDate: getTodayStr(),
+      currentMeta: { weather: '', location: '' },
+      isDirty: false,
+      draftTimer: null,
+      pinBuffer: '',
+      hiddenAt: 0,
+      bioBusy: false,
+      lastBioAttempt: 0,
+      tempSetup: null
+    };
+
+    function loadCfg() {
+      try {
+        const raw = localStorage.getItem(CFG_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        parsed.settings = Object.assign({ autoMeta: true, lockDelay: 0 }, parsed.settings || {});
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveCfg() {
+      localStorage.setItem(CFG_KEY, JSON.stringify(state.cfg));
+    }
+
+    function showScreen(name) {
+      ['setupScreen', 'lockScreen', 'editorScreen', 'calendarScreen'].forEach((id) => {
+        $(id).classList.toggle('hidden', id !== name);
+      });
+    }
+
+    /* ================================================================
+       5. SETUP & RESTORE FLOW
+       ================================================================ */
+    $('btnConnectServer').addEventListener('click', async () => {
+      const url = $('inGasUrl').value.trim();
+      const secret = $('inApiSecret').value.trim();
+      $('setupErr1').textContent = '';
+
+      if (!url.startsWith('https://script.google.com/')) {
+        $('setupErr1').textContent = '올바른 GAS 웹 앱 URL을 입력해 주세요.';
+        return;
+      }
+      if (!secret) {
+        $('setupErr1').textContent = '비밀 통신키(API_SECRET)를 입력해 주세요.';
+        return;
+      }
+
+      const btn = $('btnConnectServer');
+      btn.disabled = true;
+      btn.textContent = '연결 확인 중...';
+      try {
+        const testCfg = { gasUrl: url, apiSecret: secret };
+        await gasCall('ping', {}, testCfg);
+        const vaultRes = await gasCall('get', { filename: 'vault.json' }, testCfg);
+        state.tempSetup = { gasUrl: url, apiSecret: secret, vaultExists: vaultRes.exists, vaultContent: vaultRes.content };
+        $('setupStep1').classList.add('hidden');
+        if (vaultRes.exists) {
+          $('setupStep2Restore').classList.remove('hidden');
+        } else {
+          $('setupStep2New').classList.remove('hidden');
+        }
+      } catch (err) {
+        $('setupErr1').textContent = '연결 실패: URL 또는 비밀 통신키를 확인해 주세요. (' + err.message + ')';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '서버 연결 확인';
+      }
+    });
+
+    $('btnCreateVault').addEventListener('click', async () => {
+      const m1 = $('inMasterNew').value;
+      const m2 = $('inMasterConfirm').value;
+      const pin = $('inPinNew').value.trim();
+      $('setupErr2New').textContent = '';
+
+      if (m1.length < 6) {
+        $('setupErr2New').textContent = '마스터 비밀번호는 6자 이상으로 입력해 주세요.';
+        return;
+      }
+      if (m1 !== m2) {
+        $('setupErr2New').textContent = '마스터 비밀번호가 서로 일치하지 않습니다.';
+        return;
+      }
+      if (!/^\d{6}$/.test(pin)) {
+        $('setupErr2New').textContent = '간편 PIN은 숫자 6자리로 입력해 주세요.';
+        return;
+      }
+
+      const btn = $('btnCreateVault');
+      btn.disabled = true;
+      btn.textContent = '암호화 키 생성 중...';
+      try {
+        const rawDek = await CryptoEngine.generateRawDek();
+        const masterSalt = CryptoEngine.randomBytes(16);
+        const kekMaster = await CryptoEngine.deriveKey(m1, masterSalt, 200000);
+        const wrappedDek = await CryptoEngine.encryptBytes(kekMaster, rawDek);
+
+        const vaultPayload = JSON.stringify({
+          v: 1,
+          salt: abToB64(masterSalt),
+          wrappedDek
+        });
+
+        await gasCall('save', { filename: 'vault.json', content: vaultPayload }, state.tempSetup);
+        await finalizeDeviceSetup(rawDek, pin);
+      } catch (err) {
+        $('setupErr2New').textContent = '생성 실패: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '암호화 일기장 만들기';
+      }
+    });
+
+    $('btnRestoreVault').addEventListener('click', async () => {
+      const master = $('inMasterRestore').value;
+      const pin = $('inPinRestore').value.trim();
+      $('setupErr2Restore').textContent = '';
+
+      if (!master) {
+        $('setupErr2Restore').textContent = '마스터 비밀번호를 입력해 주세요.';
+        return;
+      }
+      if (!/^\d{6}$/.test(pin)) {
+        $('setupErr2Restore').textContent = '이 기기에서 사용할 숫자 6자리 PIN을 입력해 주세요.';
+        return;
+      }
+
+      const btn = $('btnRestoreVault');
+      btn.disabled = true;
+      btn.textContent = '복호화 중...';
+      try {
+        const vault = JSON.parse(state.tempSetup.vaultContent);
+        const kekMaster = await CryptoEngine.deriveKey(master, b64ToU8(vault.salt), 200000);
+        const rawDek = await CryptoEngine.decryptBytes(kekMaster, vault.wrappedDek);
+        await finalizeDeviceSetup(rawDek, pin);
+      } catch {
+        $('setupErr2Restore').textContent = '마스터 비밀번호가 올바르지 않습니다.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '일기장 복원 및 시작';
+      }
+    });
+
+    async function finalizeDeviceSetup(rawDek, pin) {
+      const pinSalt = CryptoEngine.randomBytes(16);
+      const kekPin = await CryptoEngine.deriveKey(pin, pinSalt, 150000);
+      const pinWrappedDek = await CryptoEngine.encryptBytes(kekPin, rawDek);
+
+      state.cfg = {
+        gasUrl: state.tempSetup.gasUrl,
+        apiSecret: state.tempSetup.apiSecret,
+        pinSalt: abToB64(pinSalt),
+        pinWrappedDek,
+        bioCredId: null,
+        bioWrappedDek: null,
+        settings: { autoMeta: true, lockDelay: 0 }
+      };
+      saveCfg();
+      state.tempSetup = null;
+
+      await onUnlocked(rawDek);
+      showToast('설정이 완료되었습니다! 설정(⚙️)에서 지문도 등록해 보세요.', 3500);
+
+      // Immediately offer biometric registration if platform authenticator exists
+      if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+        const avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if (avail && confirm('지금 바로 지문(생체인증) 잠금 해제를 등록할까요?')) {
+          await registerBiometrics();
+        }
+      }
+    }
+
+    /* ================================================================
+       6. BIOMETRICS (WebAuthn) & LOCK SCREEN
+       ================================================================ */
+    async function registerBiometrics() {
+      if (!window.PublicKeyCredential) {
+        showToast('이 브라우저에서는 지문 인증을 지원하지 않습니다.');
+        return false;
+      }
+      if (!state.rawDek) return false;
+      try {
+        const cred = await navigator.credentials.create({
+          publicKey: {
+            challenge: CryptoEngine.randomBytes(32),
+            rp: { name: '비밀 일기' },
+            user: {
+              id: CryptoEngine.randomBytes(16),
+              name: 'diary-owner',
+              displayName: '일기장 주인'
+            },
+            pubKeyCredParams: [
+              { alg: -7, type: 'public-key' },
+              { alg: -257, type: 'public-key' }
+            ],
+            authenticatorSelection: {
+              authenticatorAttachment: 'platform',
+              userVerification: 'required'
+            },
+            timeout: 60000
+          }
+        });
+
+        // Create a non-extractable device AES key stored in IndexedDB to wrap DEK
+        const deviceAesKey = await crypto.subtle.generateKey(
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+        await DeviceKeyDB.setKey('bioWrapKey', deviceAesKey);
+        const bioWrappedDek = await CryptoEngine.encryptBytes(deviceAesKey, state.rawDek);
+
+        state.cfg.bioCredId = abToB64(cred.rawId);
+        state.cfg.bioWrappedDek = bioWrappedDek;
+        saveCfg();
+        updateSettingsUI();
+        showToast('지문 인증이 등록되었습니다.');
+        return true;
+      } catch (err) {
+        showToast('지문 등록 취소 또는 실패');
+        return false;
+      }
+    }
+
+    async function unlockWithBiometrics(isAuto = false) {
+      if (state.bioBusy) return;
+      if (isAuto && Date.now() - state.lastBioAttempt < 3000) return;
+      if (!state.cfg || !state.cfg.bioCredId || !state.cfg.bioWrappedDek) {
+        if (!isAuto) showToast('설정에서 먼저 지문을 등록해 주세요.');
+        return;
+      }
+      state.bioBusy = true;
+      state.lastBioAttempt = Date.now();
+      $('lockError').textContent = '';
+      try {
+        await navigator.credentials.get({
+          publicKey: {
+            challenge: CryptoEngine.randomBytes(32),
+            allowCredentials: [{
+              id: b64ToU8(state.cfg.bioCredId),
+              type: 'public-key',
+              transports: ['internal']
+            }],
+            userVerification: 'required',
+            timeout: 60000
+          }
+        });
+        const deviceAesKey = await DeviceKeyDB.getKey('bioWrapKey');
+        if (!deviceAesKey) throw new Error('기기 키를 찾을 수 없습니다.');
+        const rawDek = await CryptoEngine.decryptBytes(deviceAesKey, state.cfg.bioWrappedDek);
+        await onUnlocked(rawDek);
+      } catch (err) {
+        if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+          $('lockError').textContent = '지문 인증 실패. 간편 PIN을 입력해 주세요.';
+        }
+      } finally {
+        state.bioBusy = false;
+      }
+    }
+
+    function updatePinDots(isError = false) {
+      const dots = $('pinDots').querySelectorAll('.pin-dot');
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('filled', i < state.pinBuffer.length);
+        dot.classList.toggle('error', isError);
+      });
+    }
+
+    async function handlePinInput(digit) {
+      if (state.pinBuffer.length >= 6) return;
+      state.pinBuffer += digit;
+      $('lockError').textContent = '';
+      updatePinDots(false);
+
+      if (state.pinBuffer.length === 6) {
+        const pin = state.pinBuffer;
+        try {
+          const kekPin = await CryptoEngine.deriveKey(pin, b64ToU8(state.cfg.pinSalt), 150000);
+          const rawDek = await CryptoEngine.decryptBytes(kekPin, state.cfg.pinWrappedDek);
+          state.pinBuffer = '';
+          updatePinDots(false);
+          await onUnlocked(rawDek);
+        } catch {
+          updatePinDots(true);
+          $('lockError').textContent = 'PIN이 일치하지 않습니다.';
+          setTimeout(() => {
+            state.pinBuffer = '';
+            updatePinDots(false);
+          }, 450);
+        }
+      }
+    }
+
+    $('keypad').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      if (btn.dataset.key !== undefined) {
+        handlePinInput(btn.dataset.key);
+      } else if (btn.id === 'btnKeyBack') {
+        state.pinBuffer = state.pinBuffer.slice(0, -1);
+        updatePinDots(false);
+      } else if (btn.id === 'btnBioUnlock') {
+        unlockWithBiometrics();
+      }
+    });
+
+    // Master password fallback modal
+    $('btnMasterFallback').addEventListener('click', () => {
+      $('inMasterModalPwd').value = '';
+      $('masterModalErr').textContent = '';
+      $('masterModal').classList.remove('hidden');
+    });
+    $('btnCloseMasterModal').addEventListener('click', () => $('masterModal').classList.add('hidden'));
+    $('btnUnlockMaster').addEventListener('click', async () => {
+      const pwd = $('inMasterModalPwd').value;
+      $('masterModalErr').textContent = '';
+      if (!pwd) return;
+      const btn = $('btnUnlockMaster');
+      btn.disabled = true;
+      btn.textContent = '확인 중...';
+      try {
+        const vaultRes = await gasCall('get', { filename: 'vault.json' });
+        if (!vaultRes.exists) throw new Error('vault.json 없음');
+        const vault = JSON.parse(vaultRes.content);
+        const kekMaster = await CryptoEngine.deriveKey(pwd, b64ToU8(vault.salt), 200000);
+        const rawDek = await CryptoEngine.decryptBytes(kekMaster, vault.wrappedDek);
+        $('masterModal').classList.add('hidden');
+        await onUnlocked(rawDek);
+      } catch {
+        $('masterModalErr').textContent = '마스터 비밀번호가 올바르지 않습니다.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '잠금 해제';
+      }
+    });
+
+    function lockApp(autoTriggerBio = false) {
+      // Wipe sensitive state from RAM & DOM immediately
+      state.dek = null;
+      state.rawDek = null;
+      state.monthCache = {};
+      state.pinBuffer = '';
+      state.isDirty = false;
+      clearTimeout(state.draftTimer);
+      $('diaryInput').value = '';
+      $('calSummaryPreview').textContent = '';
+      $('settingsModal').classList.add('hidden');
+      $('masterModal').classList.add('hidden');
+
+      updatePinDots(false);
+      $('lockError').textContent = '';
+      const hasBio = !!(state.cfg && state.cfg.bioCredId);
+      $('btnBioUnlock').style.opacity = hasBio ? '1' : '0.28';
+      $('lockSubtitle').textContent = hasBio
+        ? '지문 또는 6자리 PIN으로 잠금을 해제하세요'
+        : '6자리 간편 PIN으로 잠금을 해제하세요';
+
+      showScreen('lockScreen');
+
+      if (autoTriggerBio && hasBio) {
+        setTimeout(() => {
+          if (!state.dek && document.visibilityState === 'visible') {
+            unlockWithBiometrics(true);
+          }
+        }, 220);
+      }
+    }
+
+    async function onUnlocked(rawDek) {
+      state.rawDek = rawDek;
+      state.dek = await CryptoEngine.importRawDek(rawDek);
+      // Open directly to Today's Writing Screen (as requested!)
+      await openEditorForDate(getTodayStr());
+    }
+
+    /* ================================================================
+       7. ENCRYPTED LOCAL DRAFTS & GOOGLE DRIVE MONTHLY SYNC
+       ================================================================ */
+    async function saveEncryptedDraft(dateStr, text, meta) {
+      if (!state.dek) return;
+      const payload = JSON.stringify({
+        text,
+        weather: meta.weather || '',
+        location: meta.location || '',
+        updatedAt: Date.now()
+      });
+      const enc = await CryptoEngine.encryptString(state.dek, payload);
+      localStorage.setItem(DRAFT_PREFIX + dateStr, enc);
+    }
+
+    async function loadEncryptedDraft(dateStr) {
+      if (!state.dek) return null;
+      const raw = localStorage.getItem(DRAFT_PREFIX + dateStr);
+      if (!raw) return null;
+      try {
+        const plain = await CryptoEngine.decryptString(state.dek, raw);
+        return JSON.parse(plain);
+      } catch {
+        return null;
+      }
+    }
+
+    function clearDraft(dateStr) {
+      localStorage.removeItem(DRAFT_PREFIX + dateStr);
+    }
+
+    function hasLocalDraft(dateStr) {
+      return !!localStorage.getItem(DRAFT_PREFIX + dateStr);
+    }
+
+    async function loadMonthData(ym, forceRefresh = false) {
+      if (!forceRefresh && state.monthCache[ym]) return state.monthCache[ym];
+      const filename = `${ym}.enc`;
+      const res = await gasCall('get', { filename });
+      if (!res.exists || !res.content) {
+        state.monthCache[ym] = {};
+        return state.monthCache[ym];
+      }
+      const plain = await CryptoEngine.decryptString(state.dek, res.content);
+      state.monthCache[ym] = JSON.parse(plain);
+      return state.monthCache[ym];
+    }
+
+    async function saveMonthData(ym) {
+      const filename = `${ym}.enc`;
+      const plain = JSON.stringify(state.monthCache[ym] || {});
+      const enc = await CryptoEngine.encryptString(state.dek, plain);
+      await gasCall('save', { filename, content: enc });
+    }
+
+    /* ================================================================
+       8. WEATHER & LOCATION AUTO-TAG (No API Key Required)
+       ================================================================ */
+    function mapWmoWeather(code) {
+      if (code === 0) return '☀️';
+      if (code <= 3) return '⛅';
+      if (code <= 48) return '🌫️';
+      if (code <= 67) return '🌧️';
+      if (code <= 77) return '❄️';
+      if (code <= 82) return '🌦️';
+      if (code <= 86) return '🌨️';
+      return '⛈️';
+    }
+
+    function renderMetaChips() {
+      const autoOn = state.cfg.settings.autoMeta;
+      const w = state.currentMeta.weather;
+      const l = state.currentMeta.location;
+
+      if (!autoOn && !w && !l) {
+        $('metaRow').classList.add('hidden');
+        return;
+      }
+      $('metaRow').classList.remove('hidden');
+
+      $('chipWeather').textContent = w || '+ 날씨';
+      $('chipWeather').classList.toggle('empty', !w);
+
+      $('chipLocation').textContent = l ? `📍 ${l}` : '+ 위치';
+      $('chipLocation').classList.toggle('empty', !l);
+    }
+
+    async function fetchWeatherAndLocation(force = false) {
+      if (!navigator.geolocation) return;
+      if (!force && !state.cfg.settings.autoMeta) return;
+
+      const targetDate = state.activeDate;
+      if (!state.currentMeta.weather) $('chipWeather').textContent = '☁️ 확인 중...';
+      if (!state.currentMeta.location) $('chipLocation').textContent = '📍 확인 중...';
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          if (state.activeDate !== targetDate || !state.dek) return;
+          const { latitude: lat, longitude: lon } = pos.coords;
+
+          // Fetch weather (Open-Meteo) & location (Nominatim) concurrently
+          const weatherPromise = fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`
+          ).then((r) => r.json()).catch(() => null);
+
+          const locPromise = fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&accept-language=ko`
+          ).then((r) => r.json()).catch(() => null);
+
+          const [wData, lData] = await Promise.all([weatherPromise, locPromise]);
+          if (state.activeDate !== targetDate || !state.dek) return;
+
+          if (wData && wData.current) {
+            const icon = mapWmoWeather(wData.current.weather_code);
+            const temp = Math.round(wData.current.temperature_2m);
+            state.currentMeta.weather = `${icon} ${temp}°C`;
+          }
+          if (lData && lData.address) {
+            const a = lData.address;
+            const place = a.city || a.county || a.town || a.borough || a.province || a.state || '';
+            if (place) state.currentMeta.location = place;
+          }
+          renderMetaChips();
+        },
+        () => {
+          if (state.activeDate === targetDate) renderMetaChips();
+        },
+        { enableHighAccuracy: false, timeout: 7000, maximumAge: 600000 }
+      );
+    }
+
+    $('chipWeather').addEventListener('click', () => {
+      const val = prompt('날씨를 입력하거나 비워서 삭제하세요 (예: 맑음 12°C)', state.currentMeta.weather);
+      if (val !== null) {
+        state.currentMeta.weather = val.trim();
+        renderMetaChips();
+        markDirtyAndScheduleDraft();
+      }
+    });
+
+    $('chipLocation').addEventListener('click', () => {
+      const val = prompt('위치를 입력하거나 비워서 삭제하세요 (예: 아산시)', state.currentMeta.location);
+      if (val !== null) {
+        state.currentMeta.location = val.trim();
+        renderMetaChips();
+        markDirtyAndScheduleDraft();
+      }
+    });
+
+    $('btnRefreshMeta').addEventListener('click', () => fetchWeatherAndLocation(true));
+
+    /* ================================================================
+       9. EDITOR LOGIC
+       ================================================================ */
+    function setStatusPill(text, mode = '') {
+      const el = $('saveStatusPill');
+      el.textContent = text;
+      el.className = 'status-pill' + (mode ? ' ' + mode : '');
+    }
+
+    function updateCharCount() {
+      $('charCount').textContent = `${$('diaryInput').value.length}자`;
+    }
+
+    async function openEditorForDate(dateStr) {
+      state.activeDate = dateStr;
+      state.isDirty = false;
+      clearTimeout(state.draftTimer);
+
+      $('editorDateTitle').textContent = formatKoreanShort(dateStr);
+      $('btnJumpToday').classList.toggle('hidden', dateStr === getTodayStr());
+      $('diaryInput').value = '';
+      state.currentMeta = { weather: '', location: '' };
+      renderMetaChips();
+      setStatusPill('불러오는 중...');
+      showScreen('editorScreen');
+
+      const ym = dateStr.slice(0, 7);
+      try {
+        const monthObj = await loadMonthData(ym);
+        const savedEntry = monthObj[dateStr] || null;
+        const draftEntry = await loadEncryptedDraft(dateStr);
+
+        let chosen = savedEntry;
+        let isFromDraft = false;
+        if (draftEntry && (!savedEntry || draftEntry.updatedAt > (savedEntry.updatedAt || 0))) {
+          chosen = draftEntry;
+          isFromDraft = true;
+        }
+
+        if (chosen) {
+          $('diaryInput').value = chosen.text || '';
+          state.currentMeta = {
+            weather: chosen.weather || '',
+            location: chosen.location || ''
+          };
+          setStatusPill(isFromDraft ? '임시저장됨' : '저장됨', isFromDraft ? 'draft' : 'saved');
+          state.isDirty = isFromDraft;
+        } else {
+          setStatusPill('새 일기');
+          if (dateStr === getTodayStr() && state.cfg.settings.autoMeta) {
+            fetchWeatherAndLocation(false);
+          }
+        }
+        renderMetaChips();
+        updateCharCount();
+      } catch (err) {
+        // Fallback to local draft even if offline
+        const draftEntry = await loadEncryptedDraft(dateStr);
+        if (draftEntry) {
+          $('diaryInput').value = draftEntry.text || '';
+          state.currentMeta = { weather: draftEntry.weather || '', location: draftEntry.location || '' };
+          renderMetaChips();
+          updateCharCount();
+          setStatusPill('임시저장됨', 'draft');
+        } else {
+          setStatusPill('오프라인', 'draft');
+        }
+        showToast('드라이브 연결 지연: 임시저장으로 이어쓸 수 있어요.');
+      }
+    }
+
+    function markDirtyAndScheduleDraft() {
+      state.isDirty = true;
+      setStatusPill('작성 중...', 'draft');
+      updateCharCount();
+      clearTimeout(state.draftTimer);
+      state.draftTimer = setTimeout(async () => {
+        if (!state.dek) return;
+        await saveEncryptedDraft(state.activeDate, $('diaryInput').value, state.currentMeta);
+        setStatusPill('임시저장됨', 'draft');
+      }, 1000);
+    }
+
+    $('diaryInput').addEventListener('input', markDirtyAndScheduleDraft);
+
+    $('btnSaveDiary').addEventListener('click', async () => {
+      if (!state.dek) return;
+      const text = $('diaryInput').value;
+      const dateStr = state.activeDate;
+      const ym = dateStr.slice(0, 7);
+
+      const btn = $('btnSaveDiary');
+      btn.disabled = true;
+      setStatusPill('암호화 저장 중...');
+      try {
+        const monthObj = await loadMonthData(ym);
+        if (text.trim() === '') {
+          delete monthObj[dateStr];
+        } else {
+          monthObj[dateStr] = {
+            text,
+            weather: state.currentMeta.weather || '',
+            location: state.currentMeta.location || '',
+            updatedAt: Date.now()
+          };
+        }
+        await saveMonthData(ym);
+        clearDraft(dateStr);
+        state.isDirty = false;
+        setStatusPill('저장됨', 'saved');
+        showToast('구글 드라이브에 안전하게 저장되었습니다.');
+      } catch (err) {
+        await saveEncryptedDraft(dateStr, text, state.currentMeta);
+        setStatusPill('임시저장됨', 'draft');
+        showToast('네트워크 오류: 기기에 암호화 임시저장되었습니다.');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $('btnJumpToday').addEventListener('click', async () => {
+      if (state.isDirty) await saveEncryptedDraft(state.activeDate, $('diaryInput').value, state.currentMeta);
+      openEditorForDate(getTodayStr());
+    });
+
+    $('btnGoCalendar').addEventListener('click', async () => {
+      if (state.isDirty && state.dek) {
+        await saveEncryptedDraft(state.activeDate, $('diaryInput').value, state.currentMeta);
+      }
+      const dt = parseDateStr(state.activeDate);
+      state.calYear = dt.getFullYear();
+      state.calMonth = dt.getMonth() + 1;
+      state.selectedCalDate = state.activeDate;
+      showScreen('calendarScreen');
+      await renderCalendar();
+    });
+
+    $('btnLockFromEditor').addEventListener('click', async () => {
+      if (state.isDirty && state.dek) {
+        await saveEncryptedDraft(state.activeDate, $('diaryInput').value, state.currentMeta);
+      }
+      lockApp(false);
+    });
+
+    /* ================================================================
+       10. CALENDAR SCREEN
+       ================================================================ */
+    async function renderCalendar(forceRefresh = false) {
+      const y = state.calYear;
+      const m = state.calMonth;
+      const ym = `${y}-${String(m).padStart(2, '0')}`;
+      $('calMonthLabel').textContent = `${y}년 ${m}월`;
+
+      let monthObj = {};
+      try {
+        monthObj = await loadMonthData(ym, forceRefresh);
+      } catch {
+        monthObj = state.monthCache[ym] || {};
+      }
+
+      const firstDay = new Date(y, m - 1, 1).getDay();
+      const lastDate = new Date(y, m, 0).getDate();
+      const todayStr = getTodayStr();
+
+      const grid = $('calGrid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-cell empty';
+        grid.appendChild(empty);
+      }
+
+      for (let d = 1; d <= lastDate; d++) {
+        const ds = formatDateStr(y, m, d);
+        const dow = (firstDay + d - 1) % 7;
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell';
+        if (dow === 0) cell.classList.add('sun');
+        if (dow === 6) cell.classList.add('sat');
+        if (ds === todayStr) cell.classList.add('today');
+        if (ds === state.selectedCalDate) cell.classList.add('selected');
+        if (hasLocalDraft(ds)) {
+          cell.classList.add('has-draft');
+        } else if (monthObj[ds] && monthObj[ds].text) {
+          cell.classList.add('has-entry');
+        }
+
+        cell.innerHTML = `<span class="cal-num">${d}</span><span class="cal-dot"></span>`;
+        cell.addEventListener('click', async () => {
+          if (state.selectedCalDate === ds) {
+            await openEditorForDate(ds);
+          } else {
+            state.selectedCalDate = ds;
+            await renderCalendar();
+          }
+        });
+        grid.appendChild(cell);
+      }
+
+      await updateCalendarSummary(monthObj);
+    }
+
+    async function updateCalendarSummary(monthObj) {
+      const ds = state.selectedCalDate;
+      $('calSummaryDate').textContent = formatKoreanFull(ds);
+
+      const saved = monthObj[ds] || null;
+      const draft = await loadEncryptedDraft(ds);
+      const entry = (draft && (!saved || draft.updatedAt > (saved.updatedAt || 0))) ? draft : saved;
+      const isDraft = !!(draft && entry === draft);
+
+      const statusEl = $('calSummaryStatus');
+      if (isDraft) {
+        statusEl.textContent = '임시저장됨';
+        statusEl.className = 'status-pill draft';
+      } else if (entry && entry.text) {
+        statusEl.textContent = '기록 완료';
+        statusEl.className = 'status-pill saved';
+      } else {
+        statusEl.textContent = '기록 없음';
+        statusEl.className = 'status-pill';
+      }
+
+      const metaParts = [];
+      if (entry?.weather) metaParts.push(entry.weather);
+      if (entry?.location) metaParts.push(`📍 ${entry.location}`);
+      $('calSummaryMeta').textContent = metaParts.join('  ·  ');
+      $('calSummaryMeta').classList.toggle('hidden', metaParts.length === 0);
+
+      $('calSummaryPreview').textContent = (entry && entry.text)
+        ? entry.text
+        : '탭하여 이 날의 일기를 작성하세요.';
+    }
+
+    $('btnPrevMonth').addEventListener('click', () => {
+      state.calMonth--;
+      if (state.calMonth < 1) { state.calMonth = 12; state.calYear--; }
+      state.selectedCalDate = formatDateStr(state.calYear, state.calMonth, 1);
+      renderCalendar();
+    });
+
+    $('btnNextMonth').addEventListener('click', () => {
+      state.calMonth++;
+      if (state.calMonth > 12) { state.calMonth = 1; state.calYear++; }
+      state.selectedCalDate = formatDateStr(state.calYear, state.calMonth, 1);
+      renderCalendar();
+    });
+
+    $('calSummaryCard').addEventListener('click', () => openEditorForDate(state.selectedCalDate));
+    $('btnWriteToday').addEventListener('click', () => openEditorForDate(getTodayStr()));
+    $('btnLockFromCal').addEventListener('click', () => lockApp(false));
+
+    /* ================================================================
+       11. SETTINGS MODAL
+       ================================================================ */
+    function updateSettingsUI() {
+      const hasBio = !!(state.cfg && state.cfg.bioCredId);
+      $('bioStatusText').textContent = hasBio ? '등록됨 (사용 중)' : '미등록';
+      $('btnToggleBio').textContent = hasBio ? '해제' : '등록하기';
+      $('chkAutoMeta').checked = !!state.cfg.settings.autoMeta;
+      $('selLockDelay').value = String(state.cfg.settings.lockDelay);
+    }
+
+    $('btnOpenSettings').addEventListener('click', () => {
+      updateSettingsUI();
+      $('settingsModal').classList.remove('hidden');
+    });
+    $('btnCloseSettings').addEventListener('click', () => $('settingsModal').classList.add('hidden'));
+
+    $('btnToggleBio').addEventListener('click', async () => {
+      if (state.cfg.bioCredId) {
+        state.cfg.bioCredId = null;
+        state.cfg.bioWrappedDek = null;
+        await DeviceKeyDB.clear();
+        saveCfg();
+        updateSettingsUI();
+        showToast('지문 인증이 해제되었습니다.');
+      } else {
+        await registerBiometrics();
+      }
+    });
+
+    $('chkAutoMeta').addEventListener('change', (e) => {
+      state.cfg.settings.autoMeta = e.target.checked;
+      saveCfg();
+    });
+
+    $('selLockDelay').addEventListener('change', (e) => {
+      state.cfg.settings.lockDelay = Number(e.target.value);
+      saveCfg();
+    });
+
+    $('btnChangePin').addEventListener('click', async () => {
+      const newPin = prompt('새 간편 PIN (숫자 6자리)을 입력하세요:');
+      if (newPin === null) return;
+      if (!/^\d{6}$/.test(newPin.trim())) {
+        showToast('숫자 6자리로 입력해 주세요.');
+        return;
+      }
+      const pinSalt = CryptoEngine.randomBytes(16);
+      const kekPin = await CryptoEngine.deriveKey(newPin.trim(), pinSalt, 150000);
+      state.cfg.pinSalt = abToB64(pinSalt);
+      state.cfg.pinWrappedDek = await CryptoEngine.encryptBytes(kekPin, state.rawDek);
+      saveCfg();
+      showToast('간편 PIN이 변경되었습니다.');
+    });
+
+    $('btnForceSync').addEventListener('click', async () => {
+      $('settingsModal').classList.add('hidden');
+      state.monthCache = {};
+      await renderCalendar(true);
+      showToast('구글 드라이브와 동기화되었습니다.');
+    });
+
+    $('btnResetDevice').addEventListener('click', async () => {
+      if (!confirm('이 기기의 설정과 임시저장만 초기화할까요?\n구글 드라이브의 일기 파일은 그대로 유지됩니다.')) return;
+      localStorage.removeItem(CFG_KEY);
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith(DRAFT_PREFIX)) localStorage.removeItem(k);
+      });
+      await DeviceKeyDB.clear();
+      location.reload();
+    });
+
+    /* ================================================================
+       12. AUTO-LOCK & PRIVACY BLUR ON BACKGROUND SWITCH
+       ================================================================ */
+    document.addEventListener('visibilitychange', async () => {
+      if (!state.cfg) return;
+
+      if (document.visibilityState === 'hidden') {
+        state.hiddenAt = Date.now();
+        if (state.dek) {
+          $('privacyShield').classList.remove('hidden');
+          if (state.isDirty) {
+            // Fire-and-forget encrypted draft save before locking
+            await saveEncryptedDraft(state.activeDate, $('diaryInput').value, state.currentMeta);
+          }
+          if (state.cfg.settings.lockDelay === 0) {
+            lockApp(false);
+          }
+        }
+      } else {
+        $('privacyShield').classList.add('hidden');
+        if (state.dek && state.cfg.settings.lockDelay > 0) {
+          const elapsed = (Date.now() - state.hiddenAt) / 1000;
+          if (elapsed >= state.cfg.settings.lockDelay) {
+            lockApp(true);
+          }
+        } else if (!state.dek && !$('lockScreen').classList.contains('hidden')) {
+          if (state.cfg.bioCredId) {
+            setTimeout(() => {
+              if (!state.dek && document.visibilityState === 'visible') unlockWithBiometrics(true);
+            }, 250);
+          }
+        }
+      }
+    });
+
+    /* ================================================================
+       13. BOOTSTRAP & SERVICE WORKER
+       ================================================================ */
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
+    (function init() {
+      state.cfg = loadCfg();
+      if (!state.cfg) {
+        showScreen('setupScreen');
+      } else {
+        lockApp(true);
+      }
+    })();
+  </script>
+</body>
+</html>
